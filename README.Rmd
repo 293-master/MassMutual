@@ -1,0 +1,15 @@
+---
+title: "MassMutual"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(knitr)
+```
+
+
+## Contents
+
+This folder contains materials for the MassMutual Machine Learning workshop
