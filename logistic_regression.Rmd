@@ -1,0 +1,165 @@
+
+---
+title: "Logistic Regression"
+author: "Albert Y. Kim"
+date: "Last updated on `r Sys.Date()`"
+output:
+  html_document:
+    theme: cosmo
+    highlight: tango
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    df_print: kable
+---
+
+
+# Data
+
+Read in training data from Kaggle's [Give Me Some Credit](https://www.kaggle.com/c/GiveMeSomeCredit/){target="_blank"}. Note that we are going to revisit such ideas when we have our "ethics in machine learning" module.
+
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(broom)
+
+financial_distress_orig <-
+  "https://rudeboybert.github.io/SDS293/static/methods/logisitic/cs-training.csv" %>%
+  read_csv() %>%
+  select(ID = X1, in_financial_distress = SeriousDlqin2yrs, age)
+```
+
+Let's deliberately tinker and engineer this data for our exploration of logistic regression:
+For those individuals who are in financial distress, let's add an offset of 50
+to their ages. You'll see why later. 
+
+```{r, message=FALSE, warning=FALSE}
+offset <- 50
+financial_distress <- financial_distress_orig %>%
+  mutate(age = ifelse(in_financial_distress == 1, age + offset, age))
+```
+
+Now randomly split data into `train` and `test` so that we can fit to train and
+predict on test. Note that this corresponds to the "validation set" approach
+that is used mostly for illustrative purposes and not used in practice as using
+this approach you wouldn't be making predictions on every observation. Be sure
+to `View()` these data frames after you create them:
+
+```{r, message=FALSE, warning=FALSE}
+set.seed(76)
+cs_training <- financial_distress %>%
+  sample_frac(0.25)
+cs_test <- financial_distress %>%
+  anti_join(cs_training, by="ID")
+```
+
+
+# Exploratory Data Analysis
+
+We engineered the two boxplots to not overlap by adding the `offset` strictly
+for purposes of this educational exercise.
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(cs_training, aes(x = as.logical(in_financial_distress), y = age)) +
+  geom_boxplot() +
+  labs(x = "In financial distress?", y = "Age")
+
+# Let's create a scatterplot but with age on the x-axis. Note this plot suffers
+# from overplotting:
+ggplot(cs_training, aes(x = age, y = in_financial_distress)) +
+  geom_point() +
+  labs(x = "Age", y = "In financial distress?")
+```
+
+Let's "jitter" the plot a little to break up the overplotting. In other words,
+add random vertical "nudges" to the points so that we can get a sense of how
+many plots are on top of each other. Note this is only a visualization tool; it
+does not alter the original values in the data frame. For more info on
+`geom_jitter()` read
+[ModernDive](https://moderndive.com/2-viz.html#overplotting){target="_blank"}
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(cs_training, aes(x = age, y = in_financial_distress)) +
+  geom_jitter(height = 0.01) +
+  labs(x = "Age", y = "In financial distress?")
+```
+The best fitting linear regression line in blue is no good in this particular
+case; you end up with fitted probabilities less than 0.
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(cs_training, aes(x = age, y = in_financial_distress)) +
+  geom_jitter(height = 0.01) +
+  labs(x = "Age", y = "In financial distress?") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+# Fit/train model
+
+```{r, message=FALSE, warning=FALSE}
+# Fit a logistic regression model. Note the use of glm() instead of lm()
+model_logistic <- glm(in_financial_distress ~ age, family = "binomial", data = cs_training)
+
+# 2.a) Extract regression table with confidence intervals
+# Notice coefficient for age. Is it positive or negative?
+model_logistic %>%
+  broom::tidy(conf.int = TRUE)
+
+# 2.b) Extract point-by-point info of points used to fit model. Be sure to 
+# View() this data frame
+fitted_points_logistic <- model_logistic %>%
+  broom::augment()
+
+# The .fitted values are the fitted log-odds however, NOT fitted probabilities.
+# We convert to fitted probabilities using inverse-logit function. Be sure to
+# View() this data frame
+fitted_points_logistic <- fitted_points_logistic %>%
+  mutate(fitted_prob = 1/(1 + exp(-.fitted)))
+
+# 2.c) Extract model summary info
+model_logistic %>%
+  broom::glance()
+```
+
+
+# Make predictions
+
+Make predictions on test data. Compare this to use of `broom::augment()`
+for `fitted_points_logistic`
+
+```{r, message=FALSE, warning=FALSE}
+predicted_points_logistic <- model_logistic %>%
+  broom::augment(newdata = cs_test)
+```
+
+
+
+# Visualize fitted model
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(data = fitted_points_logistic, aes(x = age, y = in_financial_distress)) +
+  # Training data with black points:
+  geom_jitter(height = 0.01) +
+  # Best fitting linear regression line in blue:
+  geom_smooth(method = "lm", se = FALSE) +
+  # Best fitting logistic curve in red:
+  geom_line(data = fitted_points_logistic, mapping = aes(y = fitted_prob), col = "red", size = 1) +
+  labs(x = "Age", y = "In financial distress?")
+```
+
+
+# Exercise
+
+1. Using the visualization above, for what age would you say that there is a
+2. Compare the visualization above with a scatterplot with:
+    a) x = age
+    b) y = the observed proportion of individuals in cs_training that are in financial
+3. Change the offset in age to 10 and -50. What do you notice happens to:
+    a) the coefficient for age in the regression table.
+    b) the shape of the logistic curve of the fitted model?
+4. Challenge question: Change the offset in age to 6.9. Why is the logistic curve flat? At what value is it?
+
+
+```{r, message=FALSE, warning=FALSE}
+
+```
