@@ -521,6 +521,73 @@ mean(RMSLE_per_fold)
 
 ```{r, eval=FALSE}
 
+# Estimate RMSLE for a large number of cp values:
+cp_values <- seq(from = 0, to = 0.003, len = 101)
+RMLSE_per_cp_value <- rep(0, times = length(cp_values))
+
+for(j in 1:length(cp_values)){
+  cp_to_evaluate <- cp_values[j]
+  # Perform cross-validation on all 5 folds:
+  for(i in 1:k){
+    # Set the cross-validation training set to be folds 2-5
+    train_cv <- train %>% 
+      filter(fold != i)
+    # Set the cross-validation test set to be fold 1
+    test_cv <- train %>% 
+      filter(fold == i)
+    
+    # Fit CART model on train_cv
+    CART_cv <- rpart(SalePrice ~ GrLivArea + HalfBath + YearBuilt, 
+                     data = train_cv, 
+                     control = rpart.control(cp = cp_to_evaluate))
+    
+    # Make predictions on test_cv
+    y_hat_cv <- predict(CART_cv, type = "vector", newdata = test_cv)
+    
+    # Compute the RMSLE of predictions for the first fold and save
+    RMSLE_per_fold[i] <- rmsle(test_cv$SalePrice, y_hat_cv) 
+  }
+  # Save RMLSE for this particular cp value
+  RMLSE_per_cp_value[j] <- mean(RMSLE_per_fold)
+}
+
+# Create data frame of cp_values and corresponding estimates of RMLSE:
+results <- tibble(
+  cp_value = cp_values,
+  RMLSE = RMLSE_per_cp_value
+)
+
+# Plot RMSLE as a function of cp:
+ggplot(results, aes(x = cp_value, y = RMLSE)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Complexity parameter", y = "Estimated RMSLE")
+
+# Find cp_star corresponding to lowest RMLSE
+results %>% 
+  arrange(RMLSE)
+
+# Using optimal complexity parameter cp*, make a submission to Kaggle:
+cp_star <- 0.00045
+
+# a) Fit CART model to ALL training data
+model_CART_5 <- rpart(SalePrice ~ GrLivArea + HalfBath + YearBuilt, data = train,
+                      control = rpart.control(cp = cp_star)
+                      )
+
+# 2.b) Visualize fitted tree. It is different than the previous tree fit to all
+# the iris data
+plot(model_CART_5, margin = 0.25)
+text(model_CART_5, use.n = TRUE)
+title("Predicting sale price using optimal cp")
+box()
+
+# Make predictions on test data:
+submission_5 <- test %>%
+  select(Id) %>%
+  mutate(SalePrice = predict(model_CART_5, type="vector", newdata = test))
+
+
 ```
 
 
