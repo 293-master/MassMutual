@@ -40,7 +40,9 @@ financial_distress <- financial_distress_orig %>%
 ```
 
 Now randomly split data into `train` and `test` so that we can fit to train and
-predict on test. Note that this corresponds to the "validation set" approach
+predict on test. We randomly assign 25% of observations to `train` and 75% to `test`? Why 25%? This was somewhat arbitrarily chosen so that our train to test ratio is 1:3. 
+
+Note that this corresponds to the "validation set" approach
 that is used mostly for illustrative purposes and not used in practice as using
 this approach you wouldn't be making predictions on every observation. Be sure
 to `View()` these data frames after you create them:
