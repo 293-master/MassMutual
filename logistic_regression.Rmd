@@ -153,10 +153,11 @@ ggplot(data = fitted_points_logistic, aes(x = age, y = in_financial_distress)) +
 
 # Exercise
 
-1. Using the visualization above, for what age would you say that there is a
+1. Using the visualization above, for what age would you say that there is a 50/50 chance of financial distress?
 2. Compare the visualization above with a scatterplot with:
     a) x = age
-    b) y = the observed proportion of individuals in cs_training that are in financial
+    b) y = the observed proportion of individuals in cs_training that are in 
+    financial distress for that age
 3. Change the offset in age to 10 and -50. What do you notice happens to:
     a) the coefficient for age in the regression table.
     b) the shape of the logistic curve of the fitted model?
