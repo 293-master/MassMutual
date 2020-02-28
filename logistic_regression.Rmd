@@ -83,6 +83,7 @@ ggplot(cs_training, aes(x = age, y = in_financial_distress)) +
   geom_jitter(height = 0.01) +
   labs(x = "Age", y = "In financial distress?")
 ```
+
 The best fitting linear regression line in blue is no good in this particular
 case; you end up with fitted probabilities less than 0.
 
