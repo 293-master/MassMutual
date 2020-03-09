@@ -153,17 +153,42 @@ ggplot(data = fitted_points_logistic, aes(x = age, y = in_financial_distress)) +
 
 # Exercise
 
-1. Using the visualization above, for what age would you say that there is a 50/50 chance of financial distress?
+1. Using the visualization above, for what age would you say that the model predicts a 50/50 chance of financial distress?
 2. Compare the visualization above with a scatterplot with:
     a) x = age
     b) y = the observed proportion of individuals in cs_training that are in 
     financial distress for that age
-3. Change the offset in age to 10 and -50. What do you notice happens to:
+    
+<!--
+Maybe punt on:
+3. Change the offset in age from 50 to both 10 and -50. What do you notice happens to:
     a) the coefficient for age in the regression table.
     b) the shape of the logistic curve of the fitted model?
 4. Challenge question: Change the offset in age to 6.9. Why is the logistic curve flat? At what value is it?
+--> 
 
+# Solutions
+
+1. Since red curve are the fitted $\widehat{p}$, it crosses y = 0.5 at about age = 80. In other words, of all people of age 80, about half are predicted to be in financial distress
+1. Code below. Note how red fitted logistic regression values closely matches proportions from data. 
 
 ```{r, message=FALSE, warning=FALSE}
+# Compute proportion in financial distress for each age. 
+prop_for_each_age <- cs_training %>% 
+  group_by(age) %>% 
+  arrange(age) %>% 
+  # I used mean() b/c a proportion is a mean of 0's and 1's
+  summarise(prop = mean(in_financial_distress))
 
+ggplot(data = fitted_points_logistic, aes(x = age, y = in_financial_distress)) +
+  # Training data with black points:
+  geom_jitter(height = 0.01) +
+  # Best fitting logistic curve in red:
+  geom_line(data = fitted_points_logistic, mapping = aes(y = fitted_prob), col = "red", size = 1) +
+  # Plot proportion in financial distress for each age. 
+  geom_line(data = prop_for_each_age, mapping = aes(x = age, y = prop), col = "orange", size = 1) +
+  labs(x = "Age", y = "In financial distress?")
 ```
+
+
+
