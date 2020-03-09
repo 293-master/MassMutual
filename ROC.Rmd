@@ -22,19 +22,23 @@ set.seed(76)
 # (I didn't give the model's details)
 values <- read_csv("https://rudeboybert.github.io/SDS293/static/methods/ROC/example.csv")
 
-# Alternative scenario 1: Randomly scramble the fitted p_hat. This is like guessing at random
+# Alternative scenario 1: Randomly scramble the fitted p_hat. This is like guessing at random.
+# Uncomment this:
 # values <- values %>% 
 #   mutate(p_hat = sample(p_hat))
 
-# Alternative scenario 2: Make reverse predictions
+# Alternative scenario 2: Make reverse predictions.
+# Uncomment this:
 # values <- values %>% 
 #   mutate(p_hat = 1-p_hat)
 
-# Alternative scenario 3: Make "perfect" predictions
+# Alternative scenario 3: Make "perfect" predictions.
+# Uncomment this:
 # values <- values %>% 
 #   mutate(p_hat = y)
 
-# Alternative scenario 4: Make "perfect wrong" predictions
+# Alternative scenario 4: Make "perfect wrong" predictions.
+# Uncomment this:
 # values <- values %>% 
 #   mutate(p_hat = 1-y)
 ```
