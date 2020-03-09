@@ -18,10 +18,30 @@ set.seed(76)
 ## Background
 
 ```{r, echo=FALSE, message=FALSE}
+# Actual scenario: The p_hat are fitted from an actual logistic regression model
+# (I didn't give the model's details)
 values <- read_csv("https://rudeboybert.github.io/SDS293/static/methods/ROC/example.csv")
+
+# Alternative scenario 1: Randomly scramble the fitted p_hat. This is like guessing at random
+# values <- values %>% 
+#   mutate(p_hat = sample(p_hat))
+
+# Alternative scenario 2: Make reverse predictions
+# values <- values %>% 
+#   mutate(p_hat = 1-p_hat)
+
+# Alternative scenario 3: Make "perfect" predictions
+# values <- values %>% 
+#   mutate(p_hat = y)
+
+# Alternative scenario 4: Make "perfect wrong" predictions
+# values <- values %>% 
+#   mutate(p_hat = 1-y)
 ```
 
-In our data set of `r nrow(values)` individuals, 24116 have $y$ = 1 and 35827 $y$ = 0. Let's take a look at a random sample of 10 rows of our data that we'll
+In our data set of `r nrow(values)` individuals, 24116 have $y$ = 1 and 35827 $y$ = 0. The $\widehat{p}$ values here are obtained from a model, like logistic regression.
+
+Let's take a look at a random sample of 10 rows of our data that we'll
 input data to our "Receiver Operating Characteristic" ROC curve:
 
 ```{r, echo=FALSE, message=FALSE}
