@@ -70,10 +70,17 @@ get_LASSO_coefficients <- function(LASSO_fit){
 }
 get_LASSO_coefficients(LASSO_fit_a)
 
-# For that value of lambda = 10, we have the beta-hat coefficients that minimizes
-# the equation using numerical optimization. Observe how all the
-# beta-hats have been shrunk while the beta-hat for Age and Education variable has been
-# "shrunk" to 0 and hence is dropped from the model. Compare above output with
+# For that value of lambda = 10, we have the beta-hat coefficients that
+# minimizes the equation using numerical optimization. Observe how all the
+# beta-hats have been shrunk while the beta-hat fitted slope for some of the
+# variables has been "shrunk" to 0 and hence is dropped from the model.
+#
+# Note: b/c of some variation in set.seed() across computer, you'll get
+# different training set credit. This will result in some of you getting either:
+# - Income shrunk to zero
+# - Age and Education shrunkg to zero
+
+# Compare above output with
 # previously seen "unregularized" regression results
 lm(model_formula, data = credit) %>%
   tidy(conf.int = TRUE)
@@ -145,7 +152,7 @@ get_LASSO_coefficients(LASSO_fit_c) %>%
   ggplot(aes(x = lambda, y = estimate, col = term)) +
   geom_line() +
   labs(x = "lambda (log10-scale)", y = "beta-hat") +
-  coord_cartesian(xlim=c(1, 500), ylim = c(-10, 10)) +
+  #coord_cartesian(xlim=c(1, 500), ylim = c(-10, 10)) +
   scale_x_log10()
 
 # Ask yourself, in what order are the variables being shrunk to 0?
