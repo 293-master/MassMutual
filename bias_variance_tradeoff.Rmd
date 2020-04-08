@@ -1,0 +1,181 @@
+---
+title: "Random Forests"
+author: "Albert Y. Kim"
+date: "Last updated on `r Sys.Date()`"
+output:
+  html_document: 
+    df_print: kable
+    highlight: tango
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    toc_float: 
+      collapsed: false
+---
+
+<style>
+h1{font-weight: 400;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE, eval=FALSE, fig.width=16/2, fig.height=9/2)
+```
+
+
+# Introduction
+
+In this RMarkdown document we're going to fit Random Forest models three ways:
+
+1. Using the `randomForest` package
+1. Using the [`caret`](http://topepo.github.io/caret/) package which contains a set of functions that attempt to streamline the process for creating predictive models using different model types: regression, LASSO, CART, etc. This package is a little older, but is widely used.
+1. Using the [`tidymodels`](https://rviews.rstudio.com/2019/06/19/a-gentle-intro-to-tidymodels/) package, which just like the `caret` package attempts to streamline the process for creating predictive models. This newer package is attempting to improve on `caret`. Consequently is newer and not as widely used.
+
+But first, let's set things up.
+
+## Install packages
+
+When installing the `tidymodels` package, you might be asked to install
+`rstanarm`. Install it as you normally would and when asked "Do you want to
+install from sources the package which needs compilation?", say no.
+
+```{r}
+library(tidyverse)
+library(randomForest)
+library(caret)
+library(tidymodels)
+```
+
+## Set up data and models
+
+```{r}
+# Load test data and select only subset of variables.
+test <- read_csv("https://rudeboybert.github.io/SDS293/static/test.csv") %>% 
+  select(Id, CentralAir, Fireplaces, GrLivArea, YearBuilt, FullBath) %>% 
+  # Convert to 1/0:
+  mutate(CentralAir = ifelse(CentralAir == "Y", 1, 0))
+
+# Load train data and select only subset of variables. Note the process matches
+# that for the test set as the training set must be representative of the test
+# set
+train <- read_csv("https://rudeboybert.github.io/SDS293/static/train.csv") %>% 
+  select(Id, CentralAir, Fireplaces, GrLivArea, YearBuilt, FullBath, SalePrice) %>% 
+  # Convert to 1/0:
+  mutate(CentralAir = ifelse(CentralAir == "Y", 1, 0))
+
+# Transform outcome variable space:
+train <- train %>% 
+  mutate(logSalePrice = log(SalePrice + 1))
+
+# Define the model formula for each individual CART tree used in random forests
+model_formula <-
+  "logSalePrice ~ CentralAir + Fireplaces + GrLivArea + YearBuilt + FullBath" %>%
+  as.formula()
+```
+
+
+# Fitting a `randomForest` model directly
+
+# Fit model
+
+```{r}
+# Fit random forest:
+model_rf <- randomForest(
+  # Model formula
+  form = model_formula,
+  # Training data
+  data = train, 
+  # At each node of tree, number of features/predictor variables to randomly
+  # choose from for splitting:
+  mtry = 2,
+  # Number of bagged (bootstrap aggregated) trees in your forest:
+  ntree = 100 
+)
+```
+
+
+# Predict on test data
+
+```{r}
+test <- test %>% 
+  mutate(
+    # This is how make predictions on newdata from a model of type randomForest
+    # For help on this specific predict function
+    logSalePrice_hat = predict(object = model_rf, newdata = test),
+    SalePrice_hat = exp(logSalePrice_hat) -1
+  )
+glimpse(test)
+```
+
+
+
+
+# Fitting a `randomForest` model via `caret`
+
+Here we use the `caret` package as a wrapper to the `randomForest` package's `randomForest()` function. The beauty of the `caret` is you can switch in a lot of different modeling methods easily; see a list of models [here](http://topepo.github.io/caret/available-models.html){target="_blank"}.
+
+
+```{r}
+# Specify 10-fold CV
+fit_control <- trainControl(method = "cv", number = 10)
+
+# Number of randomly chosen variables to split on at each node of tree
+mtry <- 2:4
+tunegrid <- expand.grid(.mtry=mtry)
+
+# Fit model
+set.seed(76)
+model_rf <- caret::train(
+  form = model_formula, 
+  data = train, 
+  # Set method to random forests:
+  method = "rf",
+  metric = "RMSE",
+  trControl = fit_control,
+  tuneGrid = tunegrid
+  )
+model_rf
+
+# Make predictions in transformed space:
+logSalePrice_hat <- predict(model_rf, test)
+logSalePrice_hat
+
+# Return predictions to original space by undoing transformation:
+SalePrice_hat <- exp(logSalePrice_hat) - 1
+SalePrice_hat
+
+# Submit to Kaggle:
+submission_rf <- test %>%
+  select(Id) %>%
+  mutate(SalePrice = SalePrice_hat)
+write_csv(submission_rf, "submission_rf.csv")
+```
+
+
+
+
+# Fitting a `randomForest` model via `caret`
+
+
+
+
+
+# Bias-Variance Trade-off
+
+Recall the following slide from the presentation on Tuesday:
+
+<center>
+![](https://rudeboybert.github.io/SDS293/static/images/model_performance.png){ width=500px }
+</center>
+
+Why does the orange curve (the model error when you fit a model to training but evaluate it's prediction performance on new independent test data) have that U-shape? Because of the "bias-variance" trade-off. 
+
+$$
+\mbox{MSE}\left[\widehat{f}(x)\right] = \mbox{Var}\left[\widehat{f}(x)\right] +
+\left(\mbox{Bias}\left[\widehat{f}(x)\right]\right)^2 + \sigma^2
+$$
+
+where $\widehat{y} = \widehat{f}(x)$ and $y=f(x)+\epsilon$ with $\mathbb{E}\left[\epsilon\right] = 0$ and $\mbox{Var}[\epsilon] = \sigma$. For more info, read this [blog post](http://scott.fortmann-roe.com/docs/BiasVariance.html){target="_blank"}.
+
+
+
