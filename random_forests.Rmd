@@ -235,7 +235,7 @@ write_csv(submission_rf_caret, "submission_rf_caret.csv")
 
 # Fitting a `randomForest` via `tidymodels`
 
-This is alas a topic we're going to scrap in our revised syllabus. But please remember that `tidymodels` is an initiative led by many RStudio affiliated developers to improve on `caret` and "standardize" machine learning methods in R, the way all machine learning methods are standardized in the [scikit-learn](https://scikit-learn.org/stable/){target="_blank"} in python.
+This is alas a topic we're going to scrap in our revised syllabus. But please remember that `tidymodels` is an initiative led by many RStudio affiliated developers to improve on `caret` and "standardize" machine learning methods in R, the way all machine learning methods are standardized in the [scikit-learn](https://scikit-learn.org/stable/){target="_blank"} in Python.
 
-For an example on using random forests using `tidymodels` see this [`blogpost`](https://rviews.rstudio.com/2019/06/19/a-gentle-intro-to-tidymodels/){target="_blank"}
+For an example on using random forests using `tidymodels` see this [`blogpost`](https://rviews.rstudio.com/2019/06/19/a-gentle-intro-to-tidymodels/){target="_blank"}.
 
