@@ -1,0 +1,255 @@
+---
+title: "Linear Regression via Matrix Algebra"
+author: "Albert Y. Kim"
+date: "Last updated on `r Sys.Date()`"
+output:
+  html_document: 
+    df_print: kable
+    highlight: tango
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    toc_float: 
+      collapsed: false
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 16/2,
+  fig.height = 9/2
+)
+
+library(tidyverse)
+library(broom)
+library(GGally)
+library(modelr)
+```
+
+
+
+# Introduction
+
+We're going to study the role that linear algebra plays in multiple regression model fitting. Shout out to Prof. Randi Garcia for sharing the code that generated the example data. Let's load this $n$ = 100 row toy dataset. Note this data is not real, but simulated for pedegogical purposes.
+
+```{r}
+toy_data <- read_csv("toy_example.csv")
+n <- nrow(toy_data)
+```
+
+Let's define our linear model. $y$ pants inseam length as a function of $p$ = 3 predictor variables: weight, height, and age. 
+
+$$
+y = \widehat{\beta}_0 + \widehat{\beta}_1x_1  + \widehat{\beta}_2x_2 +  + \widehat{\beta}_3x_3
+$$
+
+```{r}
+model_formula <- "inseam ~ weight + height + age" %>% 
+  as.formula()
+```
+
+As always, we perform an EDA:
+
+```{r}
+ggpairs(toy_data)
+```
+
+
+
+***
+
+
+
+# Least-squares estimates
+
+Let's now compute the fitted intercept $\widehat{\beta}_0$ and fitted slopes $(\widehat{\beta}_1, \widehat{\beta}_2, \widehat{\beta}_3)$ not by using the `lm()` in R, but using linear algebra.
+
+## Design matrix
+
+First, we define the [design matrix](https://en.wikipedia.org/wiki/Design_matrix){target="_blank"} $X$. This is simply a matrix representation of our three predictor variables, along with a column of one's for the intercept.
+
+```{r}
+# Convert the three predictor variables from data frame to matrix
+X1 <- toy_data %>% 
+  select(weight, height, age) %>% 
+  as.matrix()
+
+# Make the first column of X1 a column of 1's for the intercept
+X1 <- cbind(rep(1, times = n), X1)
+
+# Preview top 5 rows of 100
+head(X1, n = 5)
+```
+
+Sidenote: What you just did above is what you did when creating $X$ matrices in LASSO for both training and test data.
+
+```{r}
+toy_data %>% 
+  modelr::model_matrix(model_formula, data = .) %>% 
+  head(n = 5)
+```
+
+Second, we define the outcome variable as it's own vector:
+
+```{r}
+# Set outcome variable as vector
+y <- toy_data$inseam
+```
+
+## Matrix multiplications
+
+Next, we compute the fitted intercept and slopes using matrix and vector multiplication:
+
+$$
+\widehat{\beta} = (X^TX)^{-1}X^Ty
+$$
+
+Let's build up the $(X^TX)^{-1}$ part first:
+
+```{r}
+# Take the transpose of X and matrix multiply it by X
+t(X1) %*% X1
+
+# Note this is a square matrix where ncol = nrow
+dim(t(X1) %*% X1)
+
+# Take the above square matrix and invert it
+solve(t(X1) %*% X1) 
+```
+
+Next, let's build up the $X^Ty$ part:
+
+```{r}
+# Take the transpose of X and matrix multiply it by y
+t(X1) %*% y
+
+# Note the dimension
+dim(t(X1) %*% y)
+```
+
+Let's now combine these two parts with another matrix multiplication:
+
+```{r}
+solve(t(X1) %*% X1) %*% (t(X1) %*% y)
+```
+
+The are the fitted intercept $\widehat{\beta}_0$ and fitted slopes $(\widehat{\beta}_1, \widehat{\beta}_2, \widehat{\beta}_3)$!
+
+## Comparison with lm()
+
+Let's get the same values using `lm()`
+
+```{r}
+model_lm <- lm(model_formula, data = toy_data)
+summary(model_lm)
+```
+
+They are the same! In fact, all statistical software uses linear algebra to compute least-squares estimates. 
+
+
+
+***
+
+
+
+# Effect of collinearity
+
+You have studied "multicollinearity" in SDS 291 Multiple Regression. This is when two or more predictor variables are highly correlated. We're now going to study the effects of multicollinearity on our least-squares estimates.
+
+Let's make weight and height have a correlation of 1 by making weight a linear function of height:
+
+```{r}
+toy_data <- toy_data %>% 
+  mutate(weight = 5 + 6*height)
+
+ggpairs(toy_data)
+```
+
+Intuitively, you can think of the above results this way. Once you know an individual's weight, there is no new information provided by height. They are completely redundant. Think back to the flashlight and "shadows as projections" demonstration I did early in the semester. Depending on the object, certain variables projected onto the sheet were redundant to each other. 
+We're now going to study the effects of this "multicollinearity" aka "redundancy" on our least squares estimates.
+
+
+## Design matrix
+
+Let's define our new [design matrix](https://en.wikipedia.org/wiki/Design_matrix){target="_blank"} $X$ that has the perfectly correlated weight and height variables. Note the outcome variable $y$ doesn't change.
+
+```{r}
+X2 <- toy_data %>% 
+  select(weight, height, age) %>% 
+  as.matrix()
+
+# Add a column of 1's for the intercept
+X2 <- cbind(rep(1, times = n), X2)
+head(X2)
+```
+
+
+
+## Matrix multiplications
+
+Next, let's once again compute the fitted intercept and slopes via matrix multiplication:
+
+$$
+\widehat{\beta} = (X^TX)^{-1}X^Ty
+$$
+
+
+```{r, error=TRUE}
+solve(t(X2) %*% X2) %*% (t(X2) %*% y)
+```
+
+Say what?!? Let's read the error message slow. It is saying that the square matrix `t(X2) %*% X2` is "computationally singular". Recall from linear algebra that a square matrix is "singular" if it is not invertible. More on this later.
+
+
+## Comparison with lm()
+
+Let's fit the model using `lm()`
+
+```{r}
+model_lm <- lm(model_formula, data = toy_data)
+summary(model_lm)
+```
+
+Yikes! We don't even get an estimate $\widehat{\beta}_{height}$ of the true population $\beta_{height}$! Furthermore, we don't get an estimate of the standard error of the estimate $\widehat{\beta}_{height}$, hence we can't compute a test statistic or p-value, nor confidence intervals.
+
+
+
+***
+
+
+
+# Determinants and eigenvalues
+
+Recall that the design matrix `X1` was created from the original `toy_example`, but `X_2` was created using perfectly collinear weighth and height variables. 
+
+Furthermore, while we had no problems generated least-squares estimates $(\widehat{\beta}_0, \widehat{\beta}_1, \widehat{\beta}_2, \widehat{\beta}_3)$ using the original data, we couldn't for the "collinear" data. Why?
+
+It all roots in the inverse matrix $(X^TX)^{-1}$. For this inverse matrix to exist, square matrix $X^TX$ needs to be invertible. Moreover, the square matrix $X^TX$ is invertible only if the determinants are not zero. 
+
+Let's investigate using R's `det()` for determinant function:
+
+```{r}
+det(t(X1) %*% X1)
+det(t(X2) %*% X2)
+```
+
+In the second case corresponding to our "collinear" data `X2`, while the determinant of $-6.49 \times 10^{-7}$ isn't exactly zero, as far as the computer is concerned, it is "effectively" zero aka ["machine epsilon"](https://en.wikipedia.org/wiki/Machine_epsilon){target="_blank"}. This is because R is not inverting the matrix as you did by hand "analytically" in MTH 211 Linear Algebra, but rather "computationally" via *numerical approximation*. However, we leave further discussion for a class on [numerical linear algegra](https://en.wikipedia.org/wiki/Numerical_linear_algebra){target="_blank"}. 
+
+Let's revisit the eigenvalues we studied for Principal Components Analysis in `PCA.Rmd`. Roughly speaking, we said that the $k^{th}$ eigenvalue corresponds to the proportion of variance of the outcome variable $y$ explained by the $k^{th}$ eigenvector.
+
+Let's investigate using R's `eigen()` function, focusing specifically on the eigenvalues saved in `$values`:
+
+```{r}
+eigen(t(X1) %*% X1)$values %>% round(5)
+eigen(t(X2) %*% X2)$values %>% round(5)
+```
+
+In the second case corresponding to our "collinear" data `X2`, after accounting for the first three eigenvectors, you're done! You've explained $y$ perfectly! $R^2$ is 1! There is nothing left for the fourth eigenvector to do! It is completely redundant!
+
+**Moral of the Story**: If you have a predictor variable that is highly collinear with others, then at the very least, ["drop it like it's hot"](https://www.youtube.com/watch?v=RaCodgL9cvk){target="_blank"}.
+
+
+
