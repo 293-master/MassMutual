@@ -14,7 +14,7 @@ output:
       collapsed: false
 ---
 
-```{r, message=FALSE, echo=FALSE}
+```{r, include=FALSE}
 options(digits = 3)
 ```
 
