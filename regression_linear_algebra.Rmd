@@ -43,7 +43,7 @@ n <- nrow(toy_data)
 Let's define our linear model. $y$ pants inseam length as a function of $p$ = 3 predictor variables: weight, height, and age. 
 
 $$
-y = \widehat{\beta}_0 + \widehat{\beta}_1x_1  + \widehat{\beta}_2x_2 +  + \widehat{\beta}_3x_3
+\widehat{y} = \widehat{\beta}_0 + \widehat{\beta}_1x_1  + \widehat{\beta}_2x_2 + \widehat{\beta}_3x_3
 $$
 
 ```{r}
@@ -168,7 +168,7 @@ toy_data <- toy_data %>%
 ggpairs(toy_data)
 ```
 
-Intuitively, you can think of the above results this way. Once you know an individual's weight, there is no new information provided by height. They are completely redundant. Think back to the flashlight and "shadows as projections" demonstration I did early in the semester. Depending on the object, certain variables projected onto the sheet were redundant to each other. 
+Intuitively, you can think of the above results as follows: Once you know an individual's weight, there is no new information provided by height; they are completely redundant. Think back to the flashlight and "shadows as projections" demonstration I did early in the semester. Depending on the object, certain variables projected onto the sheet were redundant to each other. 
 We're now going to study the effects of this "multicollinearity" aka "redundancy" on our least squares estimates.
 
 
@@ -201,7 +201,7 @@ $$
 solve(t(X2) %*% X2) %*% (t(X2) %*% y)
 ```
 
-Say what?!? Let's read the error message slow. It is saying that the square matrix `t(X2) %*% X2` is "computationally singular". Recall from linear algebra that a square matrix is "singular" if it is not invertible. More on this later.
+Say what?!? Let's read the error message slow. It is saying that the square matrix `t(X2) %*% X2` is "computationally singular." Recall from linear algebra that a square matrix is "singular" if it is not invertible. More on this later.
 
 
 ## Comparison with lm()
@@ -223,11 +223,11 @@ Yikes! We don't even get an estimate $\widehat{\beta}_{height}$ of the true popu
 
 # Determinants and eigenvalues
 
-Recall that the design matrix `X1` was created from the original `toy_example`, but `X_2` was created using perfectly collinear weighth and height variables. 
+Recall that the design matrix `X1` was created from the original `toy_example`, but `X2` was created using perfectly collinear weighth and height variables. 
 
 Furthermore, while we had no problems generated least-squares estimates $(\widehat{\beta}_0, \widehat{\beta}_1, \widehat{\beta}_2, \widehat{\beta}_3)$ using the original data, we couldn't for the "collinear" data. Why?
 
-It all roots in the inverse matrix $(X^TX)^{-1}$. For this inverse matrix to exist, square matrix $X^TX$ needs to be invertible. Moreover, the square matrix $X^TX$ is invertible only if the determinants are not zero. 
+It all roots in the inverse matrix $(X^TX)^{-1}$. For this inverse matrix to exist, the square matrix $X^TX$ needs to be invertible. Moreover, the square matrix $X^TX$ is invertible \textit{if and only if} the determinants are not zero. 
 
 Let's investigate using R's `det()` for determinant function:
 
@@ -236,7 +236,7 @@ det(t(X1) %*% X1)
 det(t(X2) %*% X2)
 ```
 
-In the second case corresponding to our "collinear" data `X2`, while the determinant of $-6.49 \times 10^{-7}$ isn't exactly zero, as far as the computer is concerned, it is "effectively" zero aka ["machine epsilon"](https://en.wikipedia.org/wiki/Machine_epsilon){target="_blank"}. This is because R is not inverting the matrix as you did by hand "analytically" in MTH 211 Linear Algebra, but rather "computationally" via *numerical approximation*. However, we leave further discussion for a class on [numerical linear algegra](https://en.wikipedia.org/wiki/Numerical_linear_algebra){target="_blank"}. 
+In the second case corresponding to our "collinear" data `X2`, while the determinant of $-6.49 \times 10^{-7}$ isn't exactly zero, as far as the computer is concerned, it is "effectively" zero aka ["machine epsilon"](https://en.wikipedia.org/wiki/Machine_epsilon){target="_blank"}. This is because R is not inverting the matrix as you did by hand "analytically" in MTH 211 Linear Algebra, but rather "computationally" via *numerical approximation*. However, we leave further discussion for a class on [numerical linear algebra](https://en.wikipedia.org/wiki/Numerical_linear_algebra){target="_blank"}. 
 
 Let's revisit the eigenvalues we studied for Principal Components Analysis in `PCA.Rmd`. Roughly speaking, we said that the $k^{th}$ eigenvalue corresponds to the proportion of variance of the outcome variable $y$ explained by the $k^{th}$ eigenvector.
 
@@ -249,7 +249,7 @@ eigen(t(X2) %*% X2)$values %>% round(5)
 
 In the second case corresponding to our "collinear" data `X2`, after accounting for the first three eigenvectors, you're done! You've explained $y$ perfectly! $R^2$ is 1! There is nothing left for the fourth eigenvector to do! It is completely redundant!
 
-**Moral of the Story**: If you have a predictor variable that is highly collinear with others, then at the very least, ["drop it like it's hot"](https://www.youtube.com/watch?v=RaCodgL9cvk){target="_blank"}.
+**Moral of the Story**: If you have a predictor variable that is highly collinear with others, then at the very least, ["drop it like it's hot."](https://www.youtube.com/watch?v=RaCodgL9cvk){target="_blank"}
 
 
 
